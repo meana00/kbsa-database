@@ -53,7 +53,9 @@
                      <h2 class="text-3xl font-bold text-gray-300">주요 관리 개체 목록</h2>
                      <button id="addNewEntityBtnMain" onclick="openNewReportModal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition hidden">+ 신규 개체 등록</button>
                 </div>
-                <div id="object-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <div id="object-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p id="loading-indicator">Firebase 데이터 로딩 중...</p>
+                </div>
             </section>
             <section id="about" class="bg-gray-800 border border-gray-700 rounded-lg p-6 mt-12">
                 <h2 class="text-2xl font-bold text-red-400 border-b-2 border-red-500 pb-2 mb-4">우리의 임무</h2>
@@ -75,26 +77,33 @@
     <!-- Firebase SDK 추가 -->
     <script type="module">
         // Firebase 라이브러리 가져오기
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getFirestore, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-        // =================================================================================
-        // TODO: 여기에 1단계에서 복사한 본인의 Firebase 구성 코드를 붙여넣으세요.
-        // =================================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyDKTXOOGLrMlx6Q5DLK0Fo4igvukkyqExI",
-  authDomain: "kbsa-database-project.firebaseapp.com",
-  projectId: "kbsa-database-project",
-  storageBucket: "kbsa-database-project.firebasestorage.app",
-  messagingSenderId: "884730895650",
-  appId: "1:884730895650:web:01f73f08ebb24d3cc5997b",
-  measurementId: "G-2DPK1B6CNV"
+        // 사용자 본인의 Firebase 구성 코드로 교체된 부분
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKTXOOGLrMlx6Q5DLK0Fo4igvukkyqExI",
+            authDomain: "kbsa-database-project.firebaseapp.com",
+            projectId: "kbsa-database-project",
+            storageBucket: "kbsa-database-project.appspot.com", // .appspot.com 으로 수정됨
+            messagingSenderId: "884730895650",
+            appId: "1:884730895650:web:01f73f08ebb24d3cc5997b",
+            measurementId: "G-2DPK1B6CNV"
         };
-        // =================================================================================
 
         // Firebase 앱 초기화 및 Firestore 인스턴스 생성
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase가 성공적으로 초기화되었습니다.");
+        } catch (error) {
+            console.error("Firebase 초기화 오류:", error);
+            document.getElementById('loading-indicator').textContent = "Firebase 초기화에 실패했습니다. API 키를 확인해주세요.";
+            // 초기화 실패 시 더 이상 진행하지 않음
+            throw new Error("Firebase init failed");
+        }
+        
         const objectsCollection = collection(db, "kbsa-objects");
 
         // --- 상태 관리 ---
@@ -119,14 +128,22 @@ const analytics = getAnalytics(app);
         const reportContent = document.getElementById('reportContent');
         const reportForm = document.getElementById('reportForm');
         const logForm = document.getElementById('logForm');
+        const loadingIndicator = document.getElementById('loading-indicator');
 
         // --- 렌더링 함수 (이전과 동일) ---
         function getLevelColor(level) { return { '안전': 'bg-green-800 text-green-200', '경계': 'bg-yellow-800 text-yellow-200', '위험': 'bg-red-800 text-red-200' }[level] || 'bg-gray-700 text-gray-200'; }
         function renderObjects() {
-            objectListContainer.innerHTML = objects.map(obj => {
-                const adminButtons = adminMode ? `<div class="mt-4 pt-4 border-t border-gray-700 flex justify-end space-x-2"><button onclick="openEditReportModal('${obj.id}')" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded">수정</button><button onclick="openDeleteConfirm('object', '${obj.id}')" class="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">삭제</button></div>` : '';
-                return `<div class="object-card bg-gray-800 rounded-lg p-6 flex flex-col justify-between"><div><div class="flex justify-between items-center mb-2"><h3 class="text-xl font-bold text-red-400">${obj.id}</h3><span class="px-3 py-1 ${getLevelColor(obj.level)} text-sm font-semibold rounded-full">${obj.level}</span></div><p class="text-gray-400 text-sm mb-4"><strong>별칭: ${obj.alias}.</strong> ${obj.description}</p></div><div><button onclick="viewReport('${obj.id}')" class="text-red-400 hover:underline text-left">세부 보고서 열람 &raquo;</button>${adminButtons}</div></div>`;
-            }).join('');
+            if (objects.length === 0) {
+                loadingIndicator.textContent = '등록된 개체가 없습니다. 관리자 모드로 로그인하여 신규 개체를 등록해주세요.';
+                loadingIndicator.style.display = 'block';
+                objectListContainer.innerHTML = '';
+            } else {
+                loadingIndicator.style.display = 'none';
+                objectListContainer.innerHTML = objects.map(obj => {
+                    const adminButtons = adminMode ? `<div class="mt-4 pt-4 border-t border-gray-700 flex justify-end space-x-2"><button onclick="openEditReportModal('${obj.id}')" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded">수정</button><button onclick="openDeleteConfirm('object', '${obj.id}')" class="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">삭제</button></div>` : '';
+                    return `<div class="object-card bg-gray-800 rounded-lg p-6 flex flex-col justify-between"><div><div class="flex justify-between items-center mb-2"><h3 class="text-xl font-bold text-red-400">${obj.id}</h3><span class="px-3 py-1 ${getLevelColor(obj.level)} text-sm font-semibold rounded-full">${obj.level}</span></div><p class="text-gray-400 text-sm mb-4"><strong>별칭: ${obj.alias}.</strong> ${obj.description}</p></div><div><button onclick="viewReport('${obj.id}')" class="text-red-400 hover:underline text-left">세부 보고서 열람 &raquo;</button>${adminButtons}</div></div>`;
+                }).join('');
+            }
         }
         function viewReport(objectId) {
             const object = objects.find(obj => obj.id === objectId);
@@ -178,7 +195,7 @@ const analytics = getAnalytics(app);
                 closeModal('formModal');
             } catch (error) {
                 console.error("Error writing document: ", error);
-                alert("데이터 저장에 실패했습니다.");
+                alert("데이터 저장에 실패했습니다. 콘솔을 확인해주세요.");
             }
         });
 
@@ -217,7 +234,7 @@ const analytics = getAnalytics(app);
                 closeModal('logFormModal');
             } catch (error) {
                 console.error("Error updating log: ", error);
-                alert("탐사 기록 저장에 실패했습니다.");
+                alert("탐사 기록 저장에 실패했습니다. 콘솔을 확인해주세요.");
             }
         });
 
@@ -269,7 +286,7 @@ const analytics = getAnalytics(app);
                 }
             } catch (error) {
                 console.error("Delete failed: ", error);
-                alert("삭제에 실패했습니다.");
+                alert("삭제에 실패했습니다. 콘솔을 확인해주세요.");
             }
             itemToDelete = { type: null, objectId: null, logId: null };
             closeModal('deleteConfirmModal');
@@ -298,7 +315,7 @@ const analytics = getAnalytics(app);
                 alert("초기 데이터 주입 성공!");
             } catch (error) {
                 console.error("Error seeding data: ", error);
-                alert("초기 데이터 주입에 실패했습니다.");
+                alert("초기 데이터 주입에 실패했습니다. 콘솔을 확인해주세요.");
             }
         }
 
@@ -322,6 +339,9 @@ const analytics = getAnalytics(app);
                     closeModal('reportModal');
                 }
             }
+        }, (error) => {
+            console.error("Firestore 데이터 수신 오류:", error);
+            loadingIndicator.textContent = "데이터를 불러오는 데 실패했습니다. Firestore 보안 규칙을 확인해주세요.";
         });
 
         window.onload = () => {
