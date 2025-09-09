@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한국 초자연 현상 관리국</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #111827; color: #E5E7EB; }
+        .header-glitch { animation: glitch 1s linear infinite; }
+        @keyframes glitch { 2%,64% { transform: translate(2px,0) skew(0deg); } 4%,60% { transform: translate(-2px,0) skew(0deg); } 62% { transform: translate(0,0) skew(5deg); } }
+        .header-glitch:before, .header-glitch:after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; overflow: hidden; }
+        .header-glitch:before { left: 2px; text-shadow: -2px 0 #ff00c1; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim 5s infinite linear alternate-reverse; }
+        .header-glitch:after { left: -2px; text-shadow: -2px 0 #00fff9, 2px 2px #ff00c1; clip: rect(85px, 450px, 90px, 0); animation: glitch-anim2 5s infinite linear alternate-reverse; }
+        @keyframes glitch-anim { 0% { clip: rect(42px, 9999px, 44px, 0); } 10% { clip: rect(17px, 9999px, 96px, 0); } 20% { clip: rect(50px, 9999px, 52px, 0); } 30% { clip: rect(25px, 9999px, 70px, 0); } 40% { clip: rect(40px, 9999px, 62px, 0); } 50% { clip: rect(25px, 9999px, 100px, 0); } 60% { clip: rect(65px, 9999px, 80px, 0); } 70% { clip: rect(10px, 9999px, 45px, 0); } 80% { clip: rect(80px, 9999px, 100px, 0); } 90% { clip: rect(20px, 9999px, 75px, 0); } 100% { clip: rect(55px, 9999px, 60px, 0); } }
+        @keyframes glitch-anim2 { 0% { clip: rect(15px, 9999px, 99px, 0); } 10% { clip: rect(33px, 9999px, 72px, 0); } 20% { clip: rect(60px, 9999px, 42px, 0); } 30% { clip: rect(45px, 9999px, 80px, 0); } 40% { clip: rect(70px, 9999px, 52px, 0); } 50% { clip: rect(35px, 9999px, 90px, 0); } 60% { clip: rect(75px, 9999px, 70px, 0); } 70% { clip: rect(20px, 9999px, 55px, 0); } 80% { clip: rect(90px, 9999px, 100px, 0); } 90% { clip: rect(40px, 9999px, 85px, 0); } 100% { clip: rect(65px, 9999px, 70px, 0); } }
+        .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05)); background-size: 100% 4px; animation: scan 2s linear infinite; }
+        @keyframes scan { 0% { background-position: 0 0; } 100% { background-position: 0 100px; } }
+        .object-card { border: 1px solid #374151; transition: all 0.3s ease; }
+        .object-card:hover { border-color: #F87171; box-shadow: 0 0 15px rgba(248, 113, 113, 0.5); transform: translateY(-5px); }
+        
+        /* --- 지도 파동 효과 --- */
+        .map-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 10;
+        }
+        .map-marker::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            animation-name: wave;
+            animation-duration: 2s;
+            animation-iteration-count: infinite;
+            animation-timing-function: ease-out;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes wave {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            to { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+        }
+
+        .map-marker-위험 { background: #EF4444; }
+        .map-marker-위험::after { border: 2px solid #F87171; }
+        
+        .map-marker-경계 { background: #F59E0B; }
+        .map-marker-경계::after { border: 2px solid #FBBF24; }
+        
+        .map-marker-안전 { background: #10B981; }
+        .map-marker-안전::after { border: 2px solid #34D399; }
+        
+        .map-marker-미분류 { background: #9CA3AF; }
+        .map-marker-미분류::after { border: 2px solid #D1D5DB; }
+
+        .map-grid-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(248, 113, 113, 0.1) 1px, transparent 1px), 
+                linear-gradient(to right, rgba(248, 113, 113, 0.1) 1px, transparent 1px);
+            background-size: 25px 25px;
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <div class="scanlines"></div>
+    <div class="container mx-auto p-4 md:p-8">
+        <!-- 헤더 -->
+        <header class="text-center mb-12 relative">
+            <div class="inline-block p-4 border-2 border-red-500 rounded-lg">
+                <h1 class="text-4xl md:text-6xl font-bold text-red-400 tracking-widest relative header-glitch" data-text="KBSA">KBSA</h1>
+                <p class="text-lg md:text-xl text-gray-400 mt-2">한국 초자연 현상 관리국</p>
+                <p class="text-xs text-gray-500">Korea Bureau of Supernatural Affairs</p>
+                <p class="text-sm text-yellow-500 mt-2">[보안 등급: 3등급 인가자]</p>
+            </div>
+        </header>
+
+        <!-- 네비게이션 -->
+        <nav class="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-12 flex justify-center items-center space-x-4 md:space-x-8">
+            <a href="#welcome" class="text-gray-300 hover:text-red-400 transition">홈</a>
+            <a href="#map-section" class="text-gray-300 hover:text-red-400 transition">감시 지도</a>
+            <a href="#objects" class="text-gray-300 hover:text-red-400 transition">관리 개체 목록</a>
+            <a href="#about" class="text-gray-300 hover:text-red-400 transition">부서 정보</a>
+            <button id="addNewReportBtnNav" class="text-gray-300 hover:text-red-400 transition hidden">신규 보고서 추가</button>
+            <button id="adminLoginBtn" class="text-yellow-400 hover:text-yellow-200 transition border border-yellow-500 px-3 py-1 rounded-md text-sm">관리자 모드</button>
+        </nav>
+
+        <main id="main-content">
+            <section id="welcome" class="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8">
+                <h2 id="briefing-date" class="text-2xl font-bold text-red-400 border-b-2 border-red-500 pb-2 mb-4">보안 브리핑</h2>
+                <p class="mb-4">3등급 인가자, 환영합니다. 본 데이터베이스는 대한민국 영토 내에서 발견 및 관리 중인 초자연적 개체, 현상, 유물에 대한 정보를 포함하고 있습니다. 모든 정보는 <span class="text-yellow-400 font-bold">1급 기밀</span>로 취급됩니다.</p>
+                <button id="seed-data-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1 px-2 rounded-lg transition">초기 데이터 주입 (DB가 비어있을 때만 사용)</button>
+            </section>
+            
+            <section id="map-section" class="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-red-400 border-b-2 border-red-500 pb-2">에너지 파동 감시 중...</h2>
+                    <label id="changeMapBtnLabel" for="changeMapInput" class="hidden bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-3 rounded-lg transition cursor-pointer">지도 이미지 변경</label>
+                    <input type="file" id="changeMapInput" class="hidden" accept="image/*">
+                </div>
+                <div class="relative w-full max-w-xl mx-auto bg-gray-900 rounded-md overflow-hidden aspect-square">
+                    <img id="mapImage" src="https://i.ibb.co/L8yW427/south-korea-map.png" alt="대한민국 감시 지도" class="absolute inset-0 w-full h-full object-cover rounded-md opacity-50" style="z-index: 1;">
+                    <div class="map-grid-overlay"></div>
+                    <div id="map-markers" class="absolute top-0 left-0 w-full h-full" style="z-index: 10;"></div>
+                </div>
+            </section>
+
+            <section id="objects">
+                <div class="flex justify-between items-center mb-8">
+                     <h2 class="text-3xl font-bold text-gray-300">주요 관리 개체 목록</h2>
+                     <button id="addNewEntityBtnMain" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition hidden">+ 신규 개체 등록</button>
+                </div>
+                <div id="object-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p id="loading-indicator">Firebase 데이터 로딩 중...</p>
+                </div>
+            </section>
+            <section id="about" class="bg-gray-800 border border-gray-700 rounded-lg p-6 mt-12">
+                <h2 class="text-2xl font-bold text-red-400 border-b-2 border-red-500 pb-2 mb-4">우리의 임무</h2>
+                <p><strong>"우리는 어둠 속에서 싸우며, 빛을 지키기 위해 존재한다."</strong></p>
+            </section>
+        </main>
+        <footer class="text-center text-gray-500 text-sm mt-12 border-t border-gray-700 pt-6">
+            <p>&copy; 2025 대한민국 정부. 모든 권리 보유.</p>
+        </footer>
+    </div>
+
+    <!-- 모달 HTML -->
+    <div id="reportModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-gray-800 border border-red-500 rounded-lg p-8 max-w-3xl w-full max-h-screen overflow-y-auto relative"><button data-action="close-modal" data-target="reportModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button><div id="reportContent"></div></div></div>
+    <div id="formModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-gray-800 border border-yellow-500 rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"><h2 id="formTitle" class="text-2xl font-bold text-yellow-400 mb-6"></h2><button data-action="close-modal" data-target="formModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button><form id="reportForm"><input type="hidden" id="editObjectId" name="editObjectId"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div class="mb-4"><label for="objectId" class="block text-sm font-bold mb-2">개체 번호</label><input type="text" id="objectId" name="objectId" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500" required></div><div class="mb-4"><label for="objectAlias" class="block text-sm font-bold mb-2">별칭</label><input type="text" id="objectAlias" name="objectAlias" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500" required></div></div><div class="mb-4"><label for="objectLevel" class="block text-sm font-bold mb-2">위험 등급</label><select id="objectLevel" name="objectLevel" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500" required><option value="안전">안전</option><option value="경계">경계</option><option value="위험">위험</option><option value="미분류">미분류</option></select></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label for="objectLocationX" class="block text-sm font-bold mb-2">지도 좌표 X (0-100%)</label><input type="number" id="objectLocationX" name="objectLocationX" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3" min="0" max="100" step="0.1"></div><div><label for="objectLocationY" class="block text-sm font-bold mb-2">지도 좌표 Y (0-100%)</label><input type="number" id="objectLocationY" name="objectLocationY" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3" min="0" max="100" step="0.1"></div></div>
+        <div class="mb-4"><label class="block text-sm font-bold mb-2">대표 이미지 (JPG, GIF)</label><div class="mt-1 flex items-center"><img id="imagePreview" src="https://placehold.co/200x150/374151/E5E7EB?text=No+Image" alt="Image preview" class="w-32 h-24 object-cover rounded mr-4"><input type="file" id="objectImageFile" name="objectImageFile" accept=".jpg,.jpeg,.gif,.png" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-600 file:text-gray-200 hover:file:bg-gray-700"/></div><p id="uploadStatus" class="text-xs text-gray-400 mt-1"></p></div>
+        <div class="mb-4"><label for="objectDescription" class="block text-sm font-bold mb-2">개요 (목록에 표시)</label><textarea id="objectDescription" name="objectDescription" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500" required></textarea></div><div class="mb-4"><label for="objectSpecialProcedures" class="block text-sm font-bold mb-2">특수 격리 절차</label><textarea id="objectSpecialProcedures" name="objectSpecialProcedures" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500"></textarea></div><div class="mb-4"><label for="objectDetails" class="block text-sm font-bold mb-2">상세 설명</label><textarea id="objectDetails" name="objectDetails" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500"></textarea></div><div class="mb-6"><label for="objectAppendix" class="block text-sm font-bold mb-2">부록</label><textarea id="objectAppendix" rows="2" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500"></textarea></div>
+        <hr class="border-gray-600 my-6"><h3 class="text-lg font-bold text-yellow-400 mb-4">숨겨진 보고서 (선택)</h3>
+        <div class="mb-4"><label for="hiddenKeyword" class="block text-sm font-bold mb-2">키워드</label><input type="text" id="hiddenKeyword" name="hiddenKeyword" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500"></div>
+        <div class="mb-4"><label class="block text-sm font-bold mb-2">숨겨진 내용 (이미지)</label><div class="mt-1 flex items-center"><img id="hiddenImagePreview" src="https://placehold.co/200x150/374151/E5E7EB?text=No+Image" alt="Hidden image preview" class="w-32 h-24 object-cover rounded mr-4"><input type="file" id="hiddenImageFile" name="hiddenImageFile" accept=".jpg,.jpeg,.gif,.png" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-600 file:text-gray-200 hover:file:bg-gray-700"/></div><p id="hiddenUploadStatus" class="text-xs text-gray-400 mt-1"></p></div>
+        <div class="mb-6"><label for="hiddenContent" class="block text-sm font-bold mb-2">숨겨진 내용 (텍스트)</label><textarea id="hiddenContent" name="hiddenContent" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 focus:outline-none focus:border-yellow-500" placeholder="이미지 업로드 시 이 내용은 무시됩니다."></textarea></div>
+        <div class="text-right"><button type="button" data-action="close-modal" data-target="formModal" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mr-2 transition">취소</button><button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition">저장</button></div></form></div></div>
+    <div id="passwordModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-gray-800 border border-yellow-500 rounded-lg p-8 max-w-sm w-full"><h2 class="text-xl font-bold text-yellow-400 mb-4">관리자 인증</h2><p id="passwordError" class="text-red-500 text-sm mb-4 hidden">비밀번호가 틀렸습니다.</p><input type="password" id="passwordInput" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 mb-4 focus:outline-none focus:border-yellow-500" placeholder="비밀번호"><div class="text-right"><button type="button" data-action="close-modal" data-target="passwordModal" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mr-2 transition">취소</button><button type="button" id="passwordSubmitBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition">인증</button></div></div></div>
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-gray-800 border border-red-500 rounded-lg p-8 max-w-sm w-full"><h2 class="text-xl font-bold text-red-400 mb-4">삭제 확인</h2><p id="deleteConfirmText" class="mb-6"></p><div class="text-right"><button type="button" data-action="close-modal" data-target="deleteConfirmModal" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mr-2 transition">취소</button><button type="button" id="confirmDeleteBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">삭제</button></div></div></div>
+    <div id="logFormModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-gray-800 border border-green-500 rounded-lg p-8 max-w-xl w-full relative"><h2 id="logFormTitle" class="text-2xl font-bold text-green-400 mb-6"></h2><button data-action="close-modal" data-target="logFormModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button><form id="logForm"><input type="hidden" id="logObjectId"><input type="hidden" id="logId">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div><label for="logDate" class="block text-sm font-bold mb-2">기록 날짜</label><input type="date" id="logDate" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 text-gray-200" style="color-scheme: dark;" required></div>
+            <div><label for="logAgent" class="block text-sm font-bold mb-2">요원 이름</label><input type="text" id="logAgent" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3" required></div>
+        </div>
+        <div class="mb-6"><label for="logContentInput" class="block text-sm font-bold mb-2">기록 내용</label><textarea id="logContentInput" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3" required></textarea></div><div class="text-right"><button type="button" data-action="close-modal" data-target="logFormModal" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mr-2">취소</button><button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">기록 저장</button></div></form></div></div>
+    <div id="keywordModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-gray-800 border border-purple-500 rounded-lg p-8 max-w-sm w-full"><h2 class="text-xl font-bold text-purple-400 mb-4">기밀 정보 접근</h2><p id="keywordError" class="text-red-500 text-sm mb-4 hidden">키워드가 일치하지 않습니다.</p><input type="password" id="keywordInput" class="w-full bg-gray-700 border border-gray-600 rounded py-2 px-3 mb-4 focus:outline-none focus:border-purple-500" placeholder="키워드 입력"><input type="hidden" id="keywordObjectId"><div class="text-right"><button type="button" data-action="close-modal" data-target="keywordModal" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mr-2 transition">취소</button><button type="button" id="keywordSubmitBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">접근</button></div></div></div>
+    <div id="hiddenReportModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-gray-900 border border-purple-500 rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"><h2 class="text-2xl font-bold text-purple-400 mb-4">추가 기밀 보고서</h2><button data-action="close-modal" data-target="hiddenReportModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button><div id="hiddenReportContent" class="prose prose-invert max-w-none"></div></div></div>
+
+    <!-- Firebase SDK 추가 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getFirestore, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKTXOOGLrMlx6Q5DLK0Fo4igvukkyqExI",
+            authDomain: "kbsa-database-project.firebaseapp.com",
+            projectId: "kbsa-database-project",
+            storageBucket: "kbsa-database-project.appspot.com",
+            messagingSenderId: "884730895650",
+            appId: "1:884730895650:web:01f73f08ebb24d3cc5997b",
+            measurementId: "G-2DPK1B6CNV"
+        };
+
+        let db, storage;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            storage = getStorage(app);
+        } catch (error) {
+            console.error("Firebase 초기화 오류:", error);
+            document.getElementById('loading-indicator').textContent = "Firebase 초기화에 실패했습니다. API 키를 확인해주세요.";
+            throw new Error("Firebase init failed");
+        }
+        
+        const objectsCollection = collection(db, "kbsa-objects");
+        const settingsDocRef = doc(db, "settings", "siteConfig");
+
+        let adminMode = false;
+        let itemToDelete = { type: null, objectId: null, logId: null };
+        let objects = [];
+        let mapImageUrl = "https://i.ibb.co/L8yW427/south-korea-map.png";
+
+        const initialObjects = [
+            { id: "BSA-001-492-771", alias: "돌아오지 않는 놀이터", level: "안전", description: "경기도 외곽에 위치한 특정 놀이터.", location: {x: 45, y: 30}, logs: [], imageUrl: "", hiddenKeyword: "별빛", hiddenContent: "관측 기록에 따르면, 실종된 아동들은 '오리온자리'가 가장 밝게 빛나는 날 밤에만 사라졌다. 이는 놀이터의 특정 구조물이 별빛과 공명하여 차원문을 형성하기 때문으로 추정된다." },
+            { id: "BSA-002-108-345", alias: "웃는 얼굴의 도자기", level: "경계", description: "조선시대 백자로 추정되는 유물.", location: {x: 50, y: 35}, logs: [], imageUrl: "", hiddenKeyword: "미소", hiddenContent: "" },
+            { id: "BSA-003-881-213", alias: "스스로 쓰는 붓", level: "위험", description: "미래의 재앙을 예언하는 붓.", location: {x: 80, y: 70}, logs: [], imageUrl: "", hiddenKeyword: "운명", hiddenContent: "이 붓이 쓴 모든 예언은 현재까지 단 한 번의 오차도 없이 실현되었다. 예언을 막으려는 모든 시도는 더 큰 비극을 초래했다. 우리는 그저 관측자일 뿐이다." },
+            { id: "BSA-004-112-415", alias: "속삭이는 지하철", level: "위험", description: "서울 지하철 2호선의 특정 구간.", location: {x: 48, y: 33}, logs: [], imageUrl: "", hiddenKeyword: "", hiddenContent: "" },
+            { id: "BSA-005-252-810", alias: "해무 속의 등대", level: "경계", description: "부산 태종대 인근의 환영 등대.", location: {x: 88, y: 88}, logs: [], imageUrl: "", hiddenKeyword: "", hiddenContent: "" },
+            { id: "BSA-006-931-119", alias: "복제하는 자판기", level: "안전", description: "대전 KAIST 캠퍼스 내의 음료 자판기.", location: {x: 55, y: 55}, logs: [], imageUrl: "", hiddenKeyword: "", hiddenContent: "" },
+            { id: "BSA-007-334-518", alias: "기억을 먹는 안개", level: "미분류", description: "광주 무등산 특정 지역에서 발생하는 안개.", location: {x: 45, y: 80}, logs: [], imageUrl: "", hiddenKeyword: "", hiddenContent: "" },
+            { id: "BSA-008-613-224", alias: "얼지 않는 호수", level: "경계", description: "강원도 철원 비무장지대 내의 호수.", location: {x: 65, y: 15}, logs: [], imageUrl: "", hiddenKeyword: "", hiddenContent: "" },
+            { id: "BSA-009-772-901", alias: "숨쉬는 현무암", level: "안전", description: "제주도 한라산 백록담의 특정 암석.", location: {x: 35, y: 95}, logs: [], imageUrl: "", hiddenKeyword: "심장", hiddenContent: "암석 내부에서 미세한 진동이 주기적으로 관측된다. 이는 마치 거대한 생명체의 심장 박동과 유사하다. 현재까지 외부로 어떠한 영향도 미치지 않아 안전 등급으로 분류되었으나, 지속적인 감시가 필요하다." }
+        ];
+        
+        const mapImageElement = document.getElementById('mapImage');
+        const objectListContainer = document.getElementById('object-list');
+        const mapMarkersContainer = document.getElementById('map-markers');
+        const reportModal = document.getElementById('reportModal');
+        const formModal = document.getElementById('formModal');
+        const passwordModal = document.getElementById('passwordModal');
+        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        const logFormModal = document.getElementById('logFormModal');
+        const reportContent = document.getElementById('reportContent');
+        const reportForm = document.getElementById('reportForm');
+        const logForm = document.getElementById('logForm');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const hiddenReportModal = document.getElementById('hiddenReportModal');
+        const hiddenReportContent = document.getElementById('hiddenReportContent');
+        const keywordModal = document.getElementById('keywordModal');
+
+        const getLevelColor = (level) => { return { '안전': 'bg-green-800 text-green-200', '경계': 'bg-yellow-800 text-yellow-200', '위험': 'bg-red-800 text-red-200' }[level] || 'bg-gray-700 text-gray-200'; }
+        
+        const renderAll = () => {
+            renderObjects();
+            renderMap();
+        }
+
+        const renderObjects = () => {
+            if (objects.length === 0 && loadingIndicator.textContent.includes('로딩')) {
+                 return;
+            } else if (objects.length === 0) {
+                loadingIndicator.textContent = '등록된 개체가 없습니다. 관리자 모드로 로그인하여 신규 개체를 등록해주세요.';
+                loadingIndicator.style.display = 'block';
+                objectListContainer.innerHTML = '';
+            } else {
+                loadingIndicator.style.display = 'none';
+                objectListContainer.innerHTML = objects.map(obj => {
+                    const adminButtons = adminMode ? `
+                        <div class="mt-4 pt-4 border-t border-gray-700 flex justify-end space-x-2">
+                            <button data-action="open-edit-report" data-id="${obj.id}" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded">수정</button>
+                            <button data-action="open-delete-confirm" data-type="object" data-id="${obj.id}" class="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">삭제</button>
+                        </div>` : '';
+                    return `<div class="object-card bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <h3 class="text-xl font-bold text-red-400">${obj.id}</h3>
+                                        <span class="px-3 py-1 ${getLevelColor(obj.level)} text-sm font-semibold rounded-full">${obj.level}</span>
+                                    </div>
+                                    <p class="text-gray-400 text-sm mb-4"><strong>별칭: ${obj.alias}.</strong> ${obj.description}</p>
+                                </div>
+                                <div>
+                                    <button data-action="view-report" data-id="${obj.id}" class="text-red-400 hover:underline text-left">세부 보고서 열람 &raquo;</button>
+                                    ${adminButtons}
+                                </div>
+                            </div>`;
+                }).join('');
+            }
+        }
+
+        const renderMap = () => {
+            mapImageElement.src = mapImageUrl;
+            if (!mapMarkersContainer) return;
+            mapMarkersContainer.innerHTML = '';
+
+            if (objects.length === 0 && !loadingIndicator.textContent.includes('로딩')) {
+                mapMarkersContainer.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-center p-4 text-gray-400" style="z-index: 20;">표시할 개체 데이터가 없습니다.<br>관리자 모드에서 '초기 데이터 주입'을 시도해주세요.</div>`;
+                return;
+            }
+
+            objects.forEach(obj => {
+                if (obj.location && obj.location.x != null && obj.location.y != null) {
+                    const marker = document.createElement('div');
+                    marker.className = `map-marker map-marker-${obj.level}`;
+                    marker.style.left = `${obj.location.x}%`;
+                    marker.style.top = `${obj.location.y}%`;
+                    marker.title = `${obj.alias} (${obj.id})`;
+                    marker.dataset.action = 'view-report';
+                    marker.dataset.id = obj.id;
+                    mapMarkersContainer.appendChild(marker);
+                }
+            });
+        }
+        
+        const viewReport = (objectId) => {
+            const object = objects.find(obj => obj.id === objectId);
+            if (!object) return;
+            let reportHTML = `
+                <h3 class="text-2xl font-bold text-red-400 mb-1">개체 번호: ${object.id}</h3>
+                <p class="text-lg text-gray-400 mb-4"><strong>등급:</strong> ${object.level}</p>
+                <hr class="border-gray-600 my-4">`;
+
+            if (object.imageUrl) {
+                reportHTML += `<img src="${object.imageUrl}" alt="${object.alias}" class="max-w-sm mx-auto my-4 rounded-lg shadow-lg">`;
+            }
+
+            reportHTML += `
+                <p class="mb-2"><strong>특수 격리 절차:</strong> ${object.specialProcedures || '기록 없음.'}</p>
+                <p class="mb-2"><strong>설명:</strong> ${object.details || '기록 없음.'}</p>
+                ${object.appendix ? `<p class="font-bold mt-4 text-yellow-400">${object.appendix}</p>` : ''}
+                <hr class="border-gray-600 my-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-xl font-bold text-gray-300">탐사 기록</h4>
+                    ${adminMode ? `<button data-action="open-new-log" data-id="${object.id}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">+ 기록 추가</button>` : ''}
+                </div>
+                <div class="space-y-4">
+                ${object.logs && object.logs.length > 0 ? [...object.logs].sort((a,b) => b.date.localeCompare(a.date)).map(log => `<div class="bg-gray-900 p-3 rounded-lg border border-gray-700"><div class="flex justify-between items-start"><div><p class="font-semibold text-gray-400">${log.agent} - <span class="text-xs font-normal">${log.date}</span></p><p class="text-gray-300 mt-1">${log.content}</p></div>${adminMode ? `<div class="flex space-x-2 flex-shrink-0 ml-4"><button data-action="open-edit-log" data-object-id="${object.id}" data-log-id="${log.logId}" class="text-xs text-blue-400 hover:underline">수정</button><button data-action="open-delete-confirm" data-type="log" data-object-id="${object.id}" data-log-id="${log.logId}" class="text-xs text-red-400 hover:underline">삭제</button></div>` : ''}</div></div>`).join('') : '<p class="text-gray-500">기록된 탐사 기록이 없습니다.</p>'}
+                </div>`;
+            
+            if (!adminMode && object.hiddenKeyword) {
+                reportHTML += `<div class="mt-8 text-center"><button data-action="open-keyword-modal" data-id="${object.id}" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">추가 정보 열람</button></div>`;
+            }
+            reportContent.innerHTML = reportHTML;
+            reportModal.classList.remove('hidden');
+        }
+
+        const openKeywordModal = (objectId) => {
+            document.getElementById('keywordObjectId').value = objectId;
+            document.getElementById('keywordInput').value = '';
+            document.getElementById('keywordError').classList.add('hidden');
+            keywordModal.classList.remove('hidden');
+        }
+
+        const checkKeyword = () => {
+            const objectId = document.getElementById('keywordObjectId').value;
+            const keyword = document.getElementById('keywordInput').value;
+            const object = objects.find(obj => obj.id === objectId);
+
+            if (object && object.hiddenKeyword && object.hiddenKeyword.trim() !== '' && object.hiddenKeyword === keyword) {
+                closeModal('keywordModal');
+                closeModal('reportModal');
+                let content = object.hiddenContent || "기록된 내용이 없습니다.";
+                if (content.match(/\.(jpeg|jpg|gif|png)$/i) != null || content.startsWith('https://firebasestorage.googleapis.com')) {
+                    content = `<img src="${content}" class="w-full rounded-lg">`;
+                }
+                hiddenReportContent.innerHTML = content.replace(/\n/g, '<br>');
+                hiddenReportModal.classList.remove('hidden');
+            } else {
+                document.getElementById('keywordError').classList.remove('hidden');
+            }
+        }
+
+        async function uploadAndGetUrl(file, path) {
+            const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            return await getDownloadURL(snapshot.ref);
+        }
+        
+        const reportFormSubmitHandler = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const objectId = formData.get('objectId');
+            if (!objectId) { alert("개체 번호는 필수입니다."); return; }
+            
+            const uploadStatus = document.getElementById('uploadStatus');
+            const hiddenUploadStatus = document.getElementById('hiddenUploadStatus');
+            
+            const imageFile = formData.get('objectImageFile');
+            const hiddenImageFile = formData.get('hiddenImageFile');
+
+            const isEditing = formData.get('editObjectId');
+            const existingObject = objects.find(o => o.id === (isEditing || objectId));
+            
+            let imageUrl = existingObject?.imageUrl || '';
+            let hiddenContent = formData.get('hiddenContent');
+
+            if (imageFile && imageFile.size > 0) {
+                uploadStatus.textContent = '대표 이미지 업로드 중...';
+                try {
+                    imageUrl = await uploadAndGetUrl(imageFile, 'object_images');
+                    uploadStatus.textContent = '업로드 완료!';
+                } catch(error) {
+                    uploadStatus.textContent = '업로드 실패.';
+                    alert('대표 이미지 업로드에 실패했습니다.');
+                    console.error("Image upload error: ", error);
+                    return;
+                }
+            }
+
+            if (hiddenImageFile && hiddenImageFile.size > 0) {
+                 hiddenUploadStatus.textContent = '숨겨진 이미지 업로드 중...';
+                try {
+                    hiddenContent = await uploadAndGetUrl(hiddenImageFile, 'hidden_images');
+                    hiddenUploadStatus.textContent = '업로드 완료!';
+                } catch(error) {
+                    hiddenUploadStatus.textContent = '업로드 실패.';
+                    alert('숨겨진 이미지 업로드에 실패했습니다.');
+                     console.error("Hidden image upload error: ", error);
+                    return;
+                }
+            }
+
+            const objectData = {
+                id: objectId,
+                alias: formData.get('objectAlias'), level: formData.get('objectLevel'),
+                location: { x: parseFloat(formData.get('objectLocationX')), y: parseFloat(formData.get('objectLocationY')) },
+                description: formData.get('objectDescription'),
+                specialProcedures: formData.get('objectSpecialProcedures'),
+                details: formData.get('objectDetails'),
+                appendix: formData.get('objectAppendix'),
+                imageUrl: imageUrl,
+                hiddenKeyword: formData.get('hiddenKeyword'),
+                hiddenContent: hiddenContent,
+                logs: existingObject ? (existingObject.logs || []) : []
+            };
+
+            const docRef = doc(db, "kbsa-objects", objectId);
+            try {
+                await setDoc(docRef, objectData, { merge: true });
+                closeModal('formModal');
+            } catch (error) {
+                console.error("Error writing document: ", error);
+                alert("데이터 저장에 실패했습니다.");
+            }
+        };
+
+        const openNewReportModal = () => {
+             if (!adminMode) return;
+            document.getElementById('formTitle').textContent = '신규 개체 보고서 등록';
+            reportForm.reset();
+            document.getElementById('editObjectId').value = '';
+            document.getElementById('imagePreview').src = 'https://placehold.co/200x150/374151/E5E7EB?text=No+Image';
+            document.getElementById('hiddenImagePreview').src = 'https://placehold.co/200x150/374151/E5E7EB?text=No+Image';
+            document.getElementById('uploadStatus').textContent = '';
+            document.getElementById('hiddenUploadStatus').textContent = '';
+            formModal.classList.remove('hidden');
+            document.getElementById('objectId').readOnly = false;
+        }
+
+        const openEditReportModal = (objectId) => {
+            const object = objects.find(obj => obj.id === objectId); if (!object) return;
+            document.getElementById('formTitle').textContent = '개체 보고서 수정';
+            document.getElementById('objectId').value = object.id || ''; document.getElementById('objectId').readOnly = true;
+            document.getElementById('objectAlias').value = object.alias || ''; document.getElementById('objectLevel').value = object.level || '안전';
+            document.getElementById('objectLocationX').value = object.location ? object.location.x : '';
+            document.getElementById('objectLocationY').value = object.location ? object.location.y : '';
+            document.getElementById('imagePreview').src = object.imageUrl || 'https://placehold.co/200x150/374151/E5E7EB?text=No+Image';
+            document.getElementById('objectImageFile').value = '';
+            document.getElementById('uploadStatus').textContent = '';
+            document.getElementById('hiddenUploadStatus').textContent = '';
+            document.getElementById('objectDescription').value = object.description || '';
+            document.getElementById('objectSpecialProcedures').value = object.specialProcedures || '';
+            document.getElementById('objectDetails').value = object.details || '';
+            document.getElementById('objectAppendix').value = object.appendix || '';
+            document.getElementById('hiddenKeyword').value = object.hiddenKeyword || '';
+
+            const hiddenContent = object.hiddenContent || '';
+             if (hiddenContent.match(/\.(jpeg|jpg|gif|png)$/i) || hiddenContent.startsWith('https://firebasestorage.googleapis.com')) {
+                document.getElementById('hiddenImagePreview').src = hiddenContent;
+                document.getElementById('hiddenContent').value = '';
+            } else {
+                document.getElementById('hiddenImagePreview').src = 'https://placehold.co/200x150/374151/E5E7EB?text=No+Image';
+                document.getElementById('hiddenContent').value = hiddenContent;
+            }
+            document.getElementById('hiddenImageFile').value = '';
+
+            document.getElementById('editObjectId').value = object.id;
+            formModal.classList.remove('hidden');
+        }
+        
+        const openNewLogModal = (objectId) => { 
+            document.getElementById('logFormTitle').textContent = '신규 탐사 기록 추가'; 
+            logForm.reset(); 
+            document.getElementById('logObjectId').value = objectId; 
+            document.getElementById('logId').value = ''; 
+            document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+            logFormModal.classList.remove('hidden'); 
+        };
+
+        const openEditLogModal = (objectId, logId) => {
+            const object = objects.find(obj => obj.id === objectId); 
+            const log = object ? object.logs.find(l => l.logId == logId) : null; 
+            if (!log) return;
+            document.getElementById('logFormTitle').textContent = '탐사 기록 수정'; 
+            document.getElementById('logObjectId').value = objectId;
+            document.getElementById('logId').value = logId; 
+            document.getElementById('logDate').value = log.date;
+            document.getElementById('logAgent').value = log.agent;
+            document.getElementById('logContentInput').value = log.content; 
+            logFormModal.classList.remove('hidden');
+        };
+
+        const logFormSubmitHandler = async (e) => {
+            e.preventDefault();
+            const objectId = document.getElementById('logObjectId').value;
+            const logId = document.getElementById('logId').value;
+            const object = objects.find(obj => obj.id === objectId);
+            if (!object) return;
+
+            const logData = { 
+                date: document.getElementById('logDate').value,
+                agent: document.getElementById('logAgent').value, 
+                content: document.getElementById('logContentInput').value 
+            };
+            let newLogs = [...(object.logs || [])];
+
+            if (logId) {
+                const logIndex = newLogs.findIndex(l => l.logId == logId);
+                if (logIndex !== -1) {
+                    const originalLog = newLogs[logIndex];
+                    newLogs[logIndex] = { ...originalLog, ...logData };
+                }
+            } else {
+                logData.logId = Date.now();
+                newLogs.push(logData);
+            }
+            
+            const docRef = doc(db, "kbsa-objects", objectId);
+            try {
+                await updateDoc(docRef, { logs: newLogs });
+                closeModal('logFormModal');
+            } catch (error) {
+                console.error("Error updating log: ", error);
+                alert("탐사 기록 저장에 실패했습니다.");
+            }
+        };
+
+        const handleAdminClick = () => {
+            if (adminMode) {
+                adminMode = false; const btn = document.getElementById('adminLoginBtn');
+                btn.textContent = '관리자 모드'; btn.classList.replace('border-green-500', 'border-yellow-500');
+                btn.classList.replace('text-green-400', 'text-yellow-400');
+                document.getElementById('addNewReportBtnNav').classList.add('hidden');
+                document.getElementById('addNewEntityBtnMain').classList.add('hidden');
+                document.getElementById('seed-data-btn').classList.add('hidden');
+                document.getElementById('changeMapBtnLabel').classList.add('hidden');
+                renderAll();
+                if (!reportModal.classList.contains('hidden')) closeModal('reportModal');
+            } else {
+                openPasswordModal();
+            }
+        };
+        const openPasswordModal = () => { document.getElementById('passwordError').classList.add('hidden'); document.getElementById('passwordInput').value = ''; passwordModal.classList.remove('hidden'); };
+        const checkPassword = () => {
+            if (document.getElementById('passwordInput').value === '2923') {
+                adminMode = true; closeModal('passwordModal');
+                const btn = document.getElementById('adminLoginBtn');
+                btn.textContent = '관리자 모드 활성'; btn.classList.replace('border-yellow-500', 'border-green-500');
+                btn.classList.replace('text-yellow-400', 'text-green-400');
+                document.getElementById('addNewReportBtnNav').classList.remove('hidden');
+                document.getElementById('addNewEntityBtnMain').classList.remove('hidden');
+                document.getElementById('seed-data-btn').classList.remove('hidden');
+                document.getElementById('changeMapBtnLabel').classList.remove('hidden');
+                renderAll();
+            } else { document.getElementById('passwordError').classList.remove('hidden'); }
+        };
+        const openDeleteConfirm = (type, objectId, logId = null) => {
+            itemToDelete = { type, objectId, logId };
+            const text = type === 'object' ? `개체 [${objectId}] 보고서 전체를` : `[${objectId}] 보고서의 탐사 기록을`;
+            document.getElementById('deleteConfirmText').textContent = `정말로 ${text} 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`;
+            deleteConfirmModal.classList.remove('hidden');
+        };
+        const confirmDelete = async () => {
+            const { type, objectId, logId } = itemToDelete;
+            try {
+                if (type === 'object') {
+                    await deleteDoc(doc(db, "kbsa-objects", objectId));
+                } else if (type === 'log') {
+                    const object = objects.find(obj => obj.id === objectId);
+                    if (object) {
+                        const newLogs = object.logs.filter(log => log.logId !== logId);
+                        await updateDoc(doc(db, "kbsa-objects", objectId), { logs: newLogs });
+                    }
+                }
+            } catch (error) {
+                console.error("Delete failed: ", error);
+                alert("삭제에 실패했습니다.");
+            }
+            itemToDelete = { type: null, objectId: null, logId: null };
+            closeModal('deleteConfirmModal');
+        };
+
+        const updateBriefingDate = () => {
+            const today = new Date();
+            const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            document.getElementById('briefing-date').textContent = `보안 브리핑: ${formattedDate}`;
+        }
+        
+        const seedInitialData = async () => {
+            if (objects.length > 0) {
+                alert("데이터베이스가 비어있지 않습니다. 초기 데이터 주입을 취소합니다.");
+                return;
+            }
+            const batch = writeBatch(db);
+            initialObjects.forEach(obj => {
+                const docRef = doc(db, "kbsa-objects", obj.id);
+                batch.set(docRef, obj);
+            });
+            try {
+                await batch.commit();
+                alert("초기 데이터 주입 성공!");
+            } catch (error) {
+                console.error("Error seeding data: ", error);
+                alert("초기 데이터 주입에 실패했습니다.");
+            }
+        }
+
+        const closeModal = (modalId) => {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // --- 앱 초기화 및 이벤트 리스너 설정 ---
+        function initializeAppListeners() {
+            updateBriefingDate();
+
+            document.getElementById('adminLoginBtn').addEventListener('click', handleAdminClick);
+            document.getElementById('addNewReportBtnNav').addEventListener('click', openNewReportModal);
+            document.getElementById('addNewEntityBtnMain').addEventListener('click', openNewReportModal);
+            document.getElementById('seed-data-btn').addEventListener('click', seedInitialData);
+            document.getElementById('passwordSubmitBtn').addEventListener('click', checkPassword);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+            document.getElementById('keywordSubmitBtn').addEventListener('click', checkKeyword);
+            
+            document.getElementById('changeMapInput').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const btnLabel = document.getElementById('changeMapBtnLabel');
+                const originalText = btnLabel.textContent;
+                btnLabel.textContent = '업로드 중...';
+
+                try {
+                    const newMapUrl = await uploadAndGetUrl(file, 'map_images');
+                    await setDoc(settingsDocRef, { mapImageUrl: newMapUrl }, { merge: true });
+                    alert('지도 이미지가 성공적으로 변경되었습니다.');
+                } catch(error) {
+                    console.error("Map image upload error: ", error);
+                    alert("지도 이미지 업로드에 실패했습니다.");
+                } finally {
+                    btnLabel.textContent = originalText;
+                }
+            });
+            
+            document.body.addEventListener('click', (e) => {
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+
+                const action = target.dataset.action;
+                const id = target.dataset.id;
+                
+                switch(action) {
+                    case 'view-report': viewReport(id); break;
+                    case 'open-edit-report': openEditReportModal(id); break;
+                    case 'open-delete-confirm': 
+                        openDeleteConfirm(target.dataset.type, target.dataset.objectId || id, target.dataset.logId ? parseInt(target.dataset.logId) : null);
+                        break;
+                    case 'open-new-log': openNewLogModal(id); break;
+                    case 'open-edit-log':
+                        openEditLogModal(target.dataset.objectId, parseInt(target.dataset.logId));
+                        break;
+                    case 'open-keyword-modal': openKeywordModal(id); break;
+                    case 'close-modal': closeModal(target.dataset.target); break;
+                }
+            });
+            
+            document.getElementById('objectImageFile').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => { document.getElementById('imagePreview').src = event.target.result; }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            document.getElementById('hiddenImageFile').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => { document.getElementById('hiddenImagePreview').src = event.target.result; }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            reportForm.addEventListener('submit', reportFormSubmitHandler);
+            logForm.addEventListener('submit', logFormSubmitHandler);
+        }
+        
+        // --- 데이터 구독 ---
+        onSnapshot(settingsDocRef, (doc) => {
+            if (doc.exists() && doc.data().mapImageUrl) {
+                mapImageUrl = doc.data().mapImageUrl;
+            }
+            mapImageElement.src = mapImageUrl;
+        });
+
+        onSnapshot(objectsCollection, (snapshot) => {
+            objects = snapshot.docs.map(doc => doc.data()).sort((a, b) => a.id.localeCompare(b.id));
+            renderAll();
+            if (!reportModal.classList.contains('hidden')) {
+                const h3 = reportContent.querySelector('h3');
+                if (h3) {
+                    const currentId = h3.textContent.replace('개체 번호: ', '');
+                    if (objects.some(o => o.id === currentId)) {
+                        viewReport(currentId);
+                    } else {
+                        closeModal('reportModal');
+                    }
+                }
+            }
+        }, (error) => {
+            console.error("Firestore 데이터 수신 오류:", error);
+            loadingIndicator.textContent = "데이터를 불러오는 데 실패했습니다. Firestore 보안 규칙을 확인해주세요.";
+        });
+
+        // 앱 시작
+        document.addEventListener('DOMContentLoaded', initializeAppListeners);
+    </script>
+</body>
+</html>
+
